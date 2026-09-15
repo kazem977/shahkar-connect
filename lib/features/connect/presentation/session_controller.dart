@@ -42,12 +42,14 @@ class SessionController extends ChangeNotifier {
     try {
       await refreshEntitlement();
       if (entitlement?.canConnect != true) {
-        error = 'حساب کاربری شما پلن فعال ندارد. برای فعال‌سازی به پشتیبانی مراجعه کنید.';
+        error =
+            'حساب کاربری شما پلن فعال ندارد. برای فعال‌سازی به پشتیبانی مراجعه کنید.';
         return;
       }
       final res = await _api.dio.get('/api/v1/balancer/candidates');
-      final raw = (res.data['candidates'] as List<dynamic>? ?? [])
-          .cast<Map<String, dynamic>>();
+      final raw =
+          (res.data['candidates'] as List<dynamic>? ?? [])
+              .cast<Map<String, dynamic>>();
       final candidates = raw.map(NodeCandidate.fromJson).toList();
       selected = await selectBestNode(candidates);
       await _api.dio.post(

@@ -21,8 +21,9 @@ class NodeLatencyResult {
 Future<NodeCandidate> selectBestNode(List<NodeCandidate> candidates) async {
   if (candidates.isEmpty) throw NoHealthyNodeException();
   final results = await Future.wait(candidates.map(_probe));
-  final healthy = results.where((r) => r.success).toList()
-    ..sort((a, b) => a.latencyMs.compareTo(b.latencyMs));
+  final healthy =
+      results.where((r) => r.success).toList()
+        ..sort((a, b) => a.latencyMs.compareTo(b.latencyMs));
   if (healthy.isEmpty) throw NoHealthyNodeException();
   return healthy.first.node;
 }

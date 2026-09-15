@@ -87,13 +87,14 @@ class _LoginPageState extends State<LoginPage> {
                 const SizedBox(height: 24),
                 FilledButton(
                   onPressed: _busy ? null : _submit,
-                  child: _busy
-                      ? const SizedBox(
-                          height: 18,
-                          width: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text('ورود'),
+                  child:
+                      _busy
+                          ? const SizedBox(
+                            height: 18,
+                            width: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                          : const Text('ورود'),
                 ),
                 TextButton(
                   onPressed: () {

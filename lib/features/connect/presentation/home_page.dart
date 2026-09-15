@@ -67,15 +67,16 @@ class _HomePageState extends State<HomePage> {
                 _ConnectButton(
                   connected: connected,
                   connecting: connecting,
-                  onTap: connecting
-                      ? null
-                      : () {
-                          if (connected) {
-                            session.disconnect();
-                          } else {
-                            session.connect();
-                          }
-                        },
+                  onTap:
+                      connecting
+                          ? null
+                          : () {
+                            if (connected) {
+                              session.disconnect();
+                            } else {
+                              session.connect();
+                            }
+                          },
                 ),
                 const SizedBox(height: 24),
                 Text(
@@ -149,9 +150,10 @@ class _ConnectButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = connected
-        ? Theme.of(context).colorScheme.primary
-        : Theme.of(context).colorScheme.outline;
+    final color =
+        connected
+            ? Theme.of(context).colorScheme.primary
+            : Theme.of(context).colorScheme.outline;
     return Material(
       color: color.withValues(alpha: 0.12),
       shape: const CircleBorder(),
@@ -162,15 +164,16 @@ class _ConnectButton extends StatelessWidget {
           height: 180,
           width: 180,
           child: Center(
-            child: connecting
-                ? const CircularProgressIndicator()
-                : Icon(
-                    connected
-                        ? Icons.power_settings_new
-                        : Icons.power_settings_new,
-                    size: 64,
-                    color: color,
-                  ),
+            child:
+                connecting
+                    ? const CircularProgressIndicator()
+                    : Icon(
+                      connected
+                          ? Icons.power_settings_new
+                          : Icons.power_settings_new,
+                      size: 64,
+                      color: color,
+                    ),
           ),
         ),
       ),

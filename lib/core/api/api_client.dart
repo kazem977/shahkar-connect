@@ -52,8 +52,9 @@ class ApiClient {
     if (refresh == null || refresh.isEmpty) return false;
     _refreshing = true;
     try {
-      final res = await Dio(BaseOptions(baseUrl: baseUrl))
-          .post('/api/v1/auth/refresh', data: {'refresh_token': refresh});
+      final res = await Dio(
+        BaseOptions(baseUrl: baseUrl),
+      ).post('/api/v1/auth/refresh', data: {'refresh_token': refresh});
       final access = res.data['access_token'] as String?;
       if (access == null) return false;
       await _tokens.save(access: access, refresh: refresh);
