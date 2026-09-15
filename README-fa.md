@@ -6,7 +6,10 @@
 git clone https://github.com/KhaJehAmiri/shahkar-connect.git
 cd shahkar-connect
 ./tool/bootstrap.sh
-flutter run --dart-define=SHAHKAR_API_BASE=https://your-panel.example
+./tool/check.sh
+flutter run --dart-define-from-file=env/dev.env.example
 ```
+
+قالب env: `env/dev.env.example`، `env/staging.env.example`، `env/prod.env.example`. جزئیات: `docs/SETUP.md`.
 
 فلگ **`native_app_api`** در پنل باید روشن شود. تا آن زمان مسیر `/api/v1` برابر ۴۰۴ است و کاربران فعلی (ساب، کارینگ، تلگرام، پورتال) قطع نمی‌شوند.

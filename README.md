@@ -10,14 +10,18 @@ The panel repo stays **Shahkarpanel**. This repo is only the app, so you can clo
 git clone https://github.com/KhaJehAmiri/shahkar-connect.git
 cd shahkar-connect
 ./tool/bootstrap.sh
-flutter run
+./tool/check.sh
+flutter run --dart-define-from-file=env/dev.env.example
 ```
 
-Pass the panel URL at build time:
+Or pass the panel URL directly:
 
 ```bash
 flutter run --dart-define=SHAHKAR_API_BASE=https://your-panel.example
 ```
+
+Env templates: `env/dev.env.example`, `env/staging.env.example`, `env/prod.env.example`.
+Full steps: `docs/SETUP.md`.
 
 The panel must have feature flag **`native_app_api`** enabled. Until then `/api/v1/*` returns 404 and existing VPN users are unaffected.
 
