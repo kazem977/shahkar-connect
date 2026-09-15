@@ -26,7 +26,7 @@ class DesktopVpnEngine implements VpnEngine {
     }
     _state.add(const ConnectionStateSnap(kind: ConnectionStateKind.connecting));
     final file = File(
-      '${Directory.systemTemp.path}/shahkar-singbox-${pid}.json',
+      '${Directory.systemTemp.path}/shahkar-singbox-$pid.json',
     );
     await file.writeAsString(config.json, encoding: utf8);
     _configFile = file;
