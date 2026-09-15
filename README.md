@@ -30,6 +30,6 @@ The panel must have feature flag **`native_app_api`** enabled. Until then `/api/
 - Login uses the **same portal username/password** already on `users`.
 - Entitlement is `users.status` / `expire` / traffic — not a second subscription table.
 - Node shortlist comes from live `nodes` + public `hosts`. The app then TLS-probes those hosts and picks the fastest.
-- sing-box / Network Extension / VpnService bindings are phase 4 (`lib/features/connect/engine`).
+- sing-box / Network Extension / VpnService bindings: `lib/features/connect/engine` plus `native/`. Laptop steps: `docs/LAPTOP.md`.
 
 Backend contract: `Shahkarpanel` → `docs/NATIVE_APP.md`.

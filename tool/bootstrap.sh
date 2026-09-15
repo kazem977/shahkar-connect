@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Generate iOS/Android/desktop platform folders on a machine that has Flutter.
+# Generate iOS/Android/desktop platform folders on a machine that has Flutter,
+# then copy Shahkar VPN glue from native/.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -16,4 +17,10 @@ if [[ ! -d android || ! -d ios ]]; then
 fi
 
 flutter pub get
-echo "Ready. Run: flutter run"
+python3 tool/patch_vpn_glue.py
+
+echo "Ready. Next (laptop):"
+echo "  ./tool/fetch_singbox.sh     # desktop binary"
+echo "  ./tool/build_libbox.sh      # Android AAR / iOS xcframework (needs Go + NDK / Xcode)"
+echo "  flutter run --dart-define-from-file=env/dev.env.example"
+echo "Checklist: docs/LAPTOP.md"

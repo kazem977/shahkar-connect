@@ -87,3 +87,45 @@ class NodeCandidate {
     );
   }
 }
+
+class TunnelConfig {
+  const TunnelConfig({
+    required this.nodeId,
+    required this.nodeName,
+    required this.host,
+    required this.port,
+    required this.singboxJson,
+    this.sni,
+  });
+
+  final int nodeId;
+  final String nodeName;
+  final String host;
+  final int port;
+  final String singboxJson;
+  final String? sni;
+
+  factory TunnelConfig.fromJson(Map<String, dynamic> json) {
+    return TunnelConfig(
+      nodeId: json['node_id'] as int,
+      nodeName: json['node_name'] as String? ?? '',
+      host: json['host'] as String? ?? '',
+      port: json['port'] as int? ?? 443,
+      singboxJson: json['singbox_json'] as String? ?? '',
+      sni: json['sni'] as String?,
+    );
+  }
+}
+
+class TelegramLinkCode {
+  const TelegramLinkCode({required this.code, this.botCommand = '/app'});
+  final String code;
+  final String botCommand;
+
+  factory TelegramLinkCode.fromJson(Map<String, dynamic> json) {
+    return TelegramLinkCode(
+      code: json['code'] as String? ?? '',
+      botCommand: json['bot_command'] as String? ?? '/app',
+    );
+  }
+}

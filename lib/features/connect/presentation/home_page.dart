@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shahkar_connect/features/auth/data/auth_repository.dart';
 import 'package:shahkar_connect/features/auth/presentation/login_page.dart';
+import 'package:shahkar_connect/features/connect/engine/traffic_rate.dart';
 import 'package:shahkar_connect/features/connect/engine/vpn_engine.dart';
+import 'package:shahkar_connect/features/connect/presentation/connect_orb.dart';
 import 'package:shahkar_connect/features/connect/presentation/session_controller.dart';
 import 'package:shahkar_connect/features/plans/presentation/plans_page.dart';
 import 'package:shahkar_connect/features/settings/settings_page.dart';
+import 'package:shahkar_connect/theme.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -64,7 +67,7 @@ class _HomePageState extends State<HomePage> {
             child: Column(
               children: [
                 const Spacer(),
-                _ConnectButton(
+                ConnectOrb(
                   connected: connected,
                   connecting: connecting,
                   onTap:
@@ -81,7 +84,10 @@ class _HomePageState extends State<HomePage> {
                 const SizedBox(height: 24),
                 Text(
                   connecting
-                      ? 'در حال بهینه‌سازی اتصال...'
+                      ? (session.engineState.kind ==
+                              ConnectionStateKind.optimizing
+                          ? 'جابه‌جایی سرور...'
+                          : 'در حال بهینه‌سازی اتصال...')
                       : connected
                       ? 'متصل'
                       : 'قطع',
@@ -91,10 +97,21 @@ class _HomePageState extends State<HomePage> {
                   Padding(
                     padding: const EdgeInsets.only(top: 8),
                     child: Text(
-                      session.selected!.name,
+                      [
+                        session.selected!.name,
+                        if (session.selected!.region != null)
+                          session.selected!.region!,
+                      ].join(' · '),
                       style: Theme.of(context).textTheme.bodyMedium,
                     ),
                   ),
+                if (connected) ...[
+                  const SizedBox(height: 20),
+                  _SpeedRow(
+                    up: formatBps(session.rate.upBps),
+                    down: formatBps(session.rate.downBps),
+                  ),
+                ],
                 if (session.entitlement?.canConnect == false)
                   const Padding(
                     padding: EdgeInsets.only(top: 16),
@@ -137,46 +154,52 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
-class _ConnectButton extends StatelessWidget {
-  const _ConnectButton({
-    required this.connected,
-    required this.connecting,
-    required this.onTap,
-  });
+class _SpeedRow extends StatelessWidget {
+  const _SpeedRow({required this.up, required this.down});
 
-  final bool connected;
-  final bool connecting;
-  final VoidCallback? onTap;
+  final String up;
+  final String down;
 
   @override
   Widget build(BuildContext context) {
-    final color =
-        connected
-            ? Theme.of(context).colorScheme.primary
-            : Theme.of(context).colorScheme.outline;
-    return Material(
-      color: color.withValues(alpha: 0.12),
-      shape: const CircleBorder(),
-      child: InkWell(
-        customBorder: const CircleBorder(),
-        onTap: onTap,
-        child: SizedBox(
-          height: 180,
-          width: 180,
-          child: Center(
-            child:
-                connecting
-                    ? const CircularProgressIndicator()
-                    : Icon(
-                      connected
-                          ? Icons.power_settings_new
-                          : Icons.power_settings_new,
-                      size: 64,
-                      color: color,
-                    ),
-          ),
+    final muted = Theme.of(
+      context,
+    ).colorScheme.onSurface.withValues(alpha: 0.7);
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        _SpeedChip(label: 'آپلود', value: up, color: muted),
+        const SizedBox(width: 16),
+        _SpeedChip(label: 'دانلود', value: down, color: ShahkarTheme.connected),
+      ],
+    );
+  }
+}
+
+class _SpeedChip extends StatelessWidget {
+  const _SpeedChip({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  final String label;
+  final String value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Text(label, style: Theme.of(context).textTheme.labelSmall),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(color: color),
         ),
-      ),
+      ],
     );
   }
 }

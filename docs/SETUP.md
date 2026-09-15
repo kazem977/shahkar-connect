@@ -20,8 +20,8 @@ flutter run --dart-define-from-file=env/dev.env.example
 ```
 
 `./tool/bootstrap.sh` runs `flutter create` for iOS, Android, Windows, macOS,
-and Linux. Generated platform trees stay untracked (`/android/` …). Native VPN
-bindings land later under `native/` (phase 4).
+and Linux, then copies VPN glue from `native/`. Generated platform trees stay
+untracked (`/android/` …). Laptop-only steps: `docs/LAPTOP.md`.
 
 ## Panel API (do not restart production from this)
 

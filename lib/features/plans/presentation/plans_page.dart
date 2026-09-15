@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shahkar_connect/core/api/api_client.dart';
 import 'package:shahkar_connect/core/api/models.dart';
+import 'package:shahkar_connect/features/iap/iap_service.dart';
 
 class PlansPage extends StatefulWidget {
   const PlansPage({super.key});
@@ -24,6 +25,18 @@ class _PlansPageState extends State<PlansPage> {
     final res = await api.dio.get('/api/v1/plans');
     final list = (res.data as List<dynamic>).cast<Map<String, dynamic>>();
     return list.map(PlanOffer.fromJson).toList();
+  }
+
+  Future<void> _buy(PlanOffer plan) async {
+    final iap = IapService(context.read<ApiClient>());
+    try {
+      await iap.buy(plan);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(iap.describeError(e))));
+    }
   }
 
   @override
@@ -65,7 +78,10 @@ class _PlansPageState extends State<PlansPage> {
                         if (p.trafficGb != null) '${p.trafficGb} GB',
                       ].join(' · '),
                     ),
-                    trailing: const Icon(Icons.lock_outline),
+                    trailing: TextButton(
+                      onPressed: () => _buy(p),
+                      child: const Text('خرید'),
+                    ),
                   ),
                 );
               },

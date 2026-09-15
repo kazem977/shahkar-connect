@@ -3,7 +3,9 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:shahkar_connect/core/api/api_client.dart';
 import 'package:shahkar_connect/core/api/models.dart';
+import 'package:shahkar_connect/features/connect/balancer/failover.dart';
 import 'package:shahkar_connect/features/connect/balancer/node_probe.dart';
+import 'package:shahkar_connect/features/connect/engine/traffic_rate.dart';
 import 'package:shahkar_connect/features/connect/engine/vpn_engine.dart';
 
 class SessionController extends ChangeNotifier {
@@ -12,14 +14,31 @@ class SessionController extends ChangeNotifier {
       _engine = engine {
     _engineSub = _engine.stateStream.listen((s) {
       engineState = s;
+      if (s.kind == ConnectionStateKind.error && selected != null && !busy) {
+        unawaited(_failover(reason: s.message));
+      }
+      notifyListeners();
+    });
+    _trafficSub = _engine.trafficStream.listen((t) {
+      stats = t;
+      rate = _rate.update(
+        TrafficStatsSample(
+          upBytes: t.upBytes,
+          downBytes: t.downBytes,
+          at: DateTime.now(),
+        ),
+      );
       notifyListeners();
     });
   }
 
   final ApiClient _api;
   final VpnEngine _engine;
+  final TrafficRate _rate = TrafficRate();
   StreamSubscription<ConnectionStateSnap>? _engineSub;
+  StreamSubscription<TrafficStats>? _trafficSub;
   Timer? _heartbeat;
+  List<NodeCandidate> _ranked = [];
 
   Entitlement? entitlement;
   NodeCandidate? selected;
@@ -27,6 +46,8 @@ class SessionController extends ChangeNotifier {
   ConnectionStateSnap engineState = const ConnectionStateSnap(
     kind: ConnectionStateKind.idle,
   );
+  TrafficStats stats = const TrafficStats();
+  TrafficSnapshot rate = const TrafficSnapshot();
   bool busy = false;
 
   Future<void> refreshEntitlement() async {
@@ -51,16 +72,13 @@ class SessionController extends ChangeNotifier {
           (res.data['candidates'] as List<dynamic>? ?? [])
               .cast<Map<String, dynamic>>();
       final candidates = raw.map(NodeCandidate.fromJson).toList();
-      selected = await selectBestNode(candidates);
-      await _api.dio.post(
-        '/api/v1/balancer/report-selection',
-        data: {'node_id': selected!.id, 'success': true},
-      );
-      // Tunnel JSON arrives from the existing client config API in phase 4.
-      await _engine.connect(const SingBoxConfig(json: '{}'));
-      _startHeartbeat();
+      _ranked = await rankHealthyNodes(candidates);
+      selected = _ranked.first;
+      await _bindSelected(successProbe: true);
     } on NoHealthyNodeException {
       error = 'سرور مناسبی پیدا نشد. کمی بعد دوباره تلاش کنید.';
+    } on VpnUnavailableException catch (e) {
+      error = e.message;
     } catch (e) {
       error = e.toString();
     } finally {
@@ -75,10 +93,55 @@ class SessionController extends ChangeNotifier {
     try {
       await _api.dio.post(
         '/api/v1/telemetry/disconnect',
-        data: {'node_id': selected?.id},
+        data: {
+          'node_id': selected?.id,
+          'bytes_up': stats.upBytes,
+          'bytes_down': stats.downBytes,
+        },
       );
     } catch (_) {}
     notifyListeners();
+  }
+
+  Future<void> _bindSelected({required bool successProbe}) async {
+    final node = selected;
+    if (node == null) return;
+    await _api.dio.post(
+      '/api/v1/balancer/report-selection',
+      data: {'node_id': node.id, 'success': successProbe},
+    );
+    final tun = await _api.dio.get(
+      '/api/v1/client/tunnel-config',
+      queryParameters: {'node_id': node.id},
+    );
+    final cfg = TunnelConfig.fromJson(tun.data as Map<String, dynamic>);
+    await _engine.connect(SingBoxConfig(json: cfg.singboxJson));
+    _startHeartbeat();
+  }
+
+  Future<void> _failover({String? reason}) async {
+    final current = selected;
+    if (current == null || _ranked.isEmpty) return;
+    final nxt = nextCandidate(_ranked, current);
+    if (nxt == null) {
+      error = reason ?? 'همه نامزدها از دسترس خارج شدند.';
+      await disconnect();
+      return;
+    }
+    engineState = ConnectionStateSnap(
+      kind: ConnectionStateKind.optimizing,
+      message: 'جابه‌جایی سرور',
+      nodeName: nxt.name,
+    );
+    notifyListeners();
+    try {
+      await _engine.disconnect();
+      selected = nxt;
+      await _bindSelected(successProbe: false);
+    } catch (e) {
+      error = e.toString();
+      notifyListeners();
+    }
   }
 
   void _startHeartbeat() {
@@ -89,8 +152,8 @@ class SessionController extends ChangeNotifier {
           '/api/v1/telemetry/heartbeat',
           data: {
             'node_id': selected?.id,
-            'bytes_up': 0,
-            'bytes_down': 0,
+            'bytes_up': stats.upBytes,
+            'bytes_down': stats.downBytes,
             'platform': defaultTargetPlatform.name,
           },
         );
@@ -102,6 +165,7 @@ class SessionController extends ChangeNotifier {
   void dispose() {
     _heartbeat?.cancel();
     _engineSub?.cancel();
+    _trafficSub?.cancel();
     super.dispose();
   }
 }

@@ -18,14 +18,21 @@ class NodeLatencyResult {
 }
 
 /// Real TCP+TLS handshake to the candidate's public port — not ICMP.
-Future<NodeCandidate> selectBestNode(List<NodeCandidate> candidates) async {
+Future<List<NodeCandidate>> rankHealthyNodes(
+  List<NodeCandidate> candidates,
+) async {
   if (candidates.isEmpty) throw NoHealthyNodeException();
   final results = await Future.wait(candidates.map(_probe));
   final healthy =
       results.where((r) => r.success).toList()
         ..sort((a, b) => a.latencyMs.compareTo(b.latencyMs));
   if (healthy.isEmpty) throw NoHealthyNodeException();
-  return healthy.first.node;
+  return healthy.map((r) => r.node).toList();
+}
+
+Future<NodeCandidate> selectBestNode(List<NodeCandidate> candidates) async {
+  final ranked = await rankHealthyNodes(candidates);
+  return ranked.first;
 }
 
 Future<NodeLatencyResult> _probe(NodeCandidate c) async {
