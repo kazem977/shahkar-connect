@@ -23,6 +23,12 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^5.0.0
 
+# 9.6.1 (2026-09-15) references Architecture.arm64e, which published
+# code_assets 2.0.0 does not have. That breaks `flutter test` on Linux CI
+# because google_fonts → path_provider → path_provider_foundation pulls it in.
+dependency_overrides:
+  objective_c: 9.6.0
+
 flutter:
   uses-material-design: true
   generate: false
