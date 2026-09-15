@@ -5,13 +5,16 @@ import 'package:shahkar_connect/core/storage/token_store.dart';
 
 class AuthRepository {
   AuthRepository({required ApiClient api, required TokenStore tokens})
-      : _api = api,
-        _tokens = tokens;
+    : _api = api,
+      _tokens = tokens;
 
   final ApiClient _api;
   final TokenStore _tokens;
 
-  Future<void> login({required String username, required String password}) async {
+  Future<void> login({
+    required String username,
+    required String password,
+  }) async {
     final res = await _api.dio.post(
       '/api/v1/auth/login',
       data: {'username': username, 'password': password},

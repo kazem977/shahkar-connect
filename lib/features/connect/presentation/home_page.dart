@@ -27,7 +27,8 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     final session = context.watch<SessionController>();
     final connected = session.engineState.kind == ConnectionStateKind.connected;
-    final connecting = session.busy ||
+    final connecting =
+        session.busy ||
         session.engineState.kind == ConnectionStateKind.connecting ||
         session.engineState.kind == ConnectionStateKind.optimizing;
 
@@ -81,8 +82,8 @@ class _HomePageState extends State<HomePage> {
                   connecting
                       ? 'در حال بهینه‌سازی اتصال...'
                       : connected
-                          ? 'متصل'
-                          : 'قطع',
+                      ? 'متصل'
+                      : 'قطع',
                   style: Theme.of(context).textTheme.headlineSmall,
                 ),
                 if (session.selected != null)
@@ -107,7 +108,9 @@ class _HomePageState extends State<HomePage> {
                     child: Text(
                       session.error!,
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: Theme.of(context).colorScheme.error),
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
+                      ),
                     ),
                   ),
                 const Spacer(),
@@ -116,7 +119,9 @@ class _HomePageState extends State<HomePage> {
                     await context.read<AuthRepository>().logout();
                     if (!context.mounted) return;
                     Navigator.of(context).pushAndRemoveUntil(
-                      MaterialPageRoute<void>(builder: (_) => const LoginPage()),
+                      MaterialPageRoute<void>(
+                        builder: (_) => const LoginPage(),
+                      ),
                       (_) => false,
                     );
                   },
@@ -160,7 +165,9 @@ class _ConnectButton extends StatelessWidget {
             child: connecting
                 ? const CircularProgressIndicator()
                 : Icon(
-                    connected ? Icons.power_settings_new : Icons.power_settings_new,
+                    connected
+                        ? Icons.power_settings_new
+                        : Icons.power_settings_new,
                     size: 64,
                     color: color,
                   ),

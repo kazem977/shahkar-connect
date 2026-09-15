@@ -27,10 +27,8 @@ Future<void> main() async {
         Provider<ApiClient>.value(value: api),
         Provider<AuthRepository>.value(value: auth),
         ChangeNotifierProvider(
-          create: (_) => SessionController(
-            api: api,
-            engine: VpnEngine.forPlatform(),
-          ),
+          create: (_) =>
+              SessionController(api: api, engine: VpnEngine.forPlatform()),
         ),
       ],
       child: ShahkarApp(loggedIn: loggedIn),

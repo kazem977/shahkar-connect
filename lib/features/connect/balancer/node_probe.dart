@@ -32,7 +32,11 @@ Future<NodeLatencyResult> _probe(NodeCandidate c) async {
   try {
     await testTlsHandshake(c.host, c.port, timeout: const Duration(seconds: 3));
     sw.stop();
-    return NodeLatencyResult(node: c, latencyMs: sw.elapsedMilliseconds, success: true);
+    return NodeLatencyResult(
+      node: c,
+      latencyMs: sw.elapsedMilliseconds,
+      success: true,
+    );
   } catch (_) {
     return NodeLatencyResult(node: c, latencyMs: 9999, success: false);
   }

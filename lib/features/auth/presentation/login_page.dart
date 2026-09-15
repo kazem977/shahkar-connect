@@ -77,7 +77,12 @@ class _LoginPageState extends State<LoginPage> {
                 ),
                 if (_error != null) ...[
                   const SizedBox(height: 12),
-                  Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+                  Text(
+                    _error!,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
                 ],
                 const SizedBox(height: 24),
                 FilledButton(
@@ -93,7 +98,9 @@ class _LoginPageState extends State<LoginPage> {
                 TextButton(
                   onPressed: () {
                     Navigator.of(context).push(
-                      MaterialPageRoute<void>(builder: (_) => const RegisterPage()),
+                      MaterialPageRoute<void>(
+                        builder: (_) => const RegisterPage(),
+                      ),
                     );
                   },
                   child: const Text('ساخت حساب'),

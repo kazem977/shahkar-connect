@@ -8,8 +8,8 @@ import 'package:shahkar_connect/features/connect/engine/vpn_engine.dart';
 
 class SessionController extends ChangeNotifier {
   SessionController({required ApiClient api, required VpnEngine engine})
-      : _api = api,
-        _engine = engine {
+    : _api = api,
+      _engine = engine {
     _engineSub = _engine.stateStream.listen((s) {
       engineState = s;
       notifyListeners();
@@ -24,7 +24,9 @@ class SessionController extends ChangeNotifier {
   Entitlement? entitlement;
   NodeCandidate? selected;
   String? error;
-  ConnectionStateSnap engineState = const ConnectionStateSnap(kind: ConnectionStateKind.idle);
+  ConnectionStateSnap engineState = const ConnectionStateSnap(
+    kind: ConnectionStateKind.idle,
+  );
   bool busy = false;
 
   Future<void> refreshEntitlement() async {

@@ -2,7 +2,8 @@ import 'package:dio/dio.dart';
 import 'package:shahkar_connect/core/storage/token_store.dart';
 
 class ApiClient {
-  ApiClient({required this.baseUrl, required TokenStore tokens}) : _tokens = tokens {
+  ApiClient({required this.baseUrl, required TokenStore tokens})
+    : _tokens = tokens {
     dio = Dio(
       BaseOptions(
         baseUrl: baseUrl,
@@ -51,10 +52,8 @@ class ApiClient {
     if (refresh == null || refresh.isEmpty) return false;
     _refreshing = true;
     try {
-      final res = await Dio(BaseOptions(baseUrl: baseUrl)).post(
-        '/api/v1/auth/refresh',
-        data: {'refresh_token': refresh},
-      );
+      final res = await Dio(BaseOptions(baseUrl: baseUrl))
+          .post('/api/v1/auth/refresh', data: {'refresh_token': refresh});
       final access = res.data['access_token'] as String?;
       if (access == null) return false;
       await _tokens.save(access: access, refresh: refresh);

@@ -3,11 +3,7 @@ import 'dart:async';
 enum ConnectionStateKind { idle, connecting, connected, optimizing, error }
 
 class ConnectionStateSnap {
-  const ConnectionStateSnap({
-    required this.kind,
-    this.message,
-    this.nodeName,
-  });
+  const ConnectionStateSnap({required this.kind, this.message, this.nodeName});
 
   final ConnectionStateKind kind;
   final String? message;
