@@ -9,18 +9,21 @@ if ! command -v flutter >/dev/null 2>&1; then
   exit 1
 fi
 
-if [[ ! -d android || ! -d ios ]]; then
-  flutter create . \
-    --project-name shahkar_connect \
-    --org com.shahkar.connect \
-    --platforms=ios,android,windows,macos,linux
-fi
+flutter create . \
+  --project-name shahkar_connect \
+  --org com.shahkar.connect \
+  --platforms=ios,android,windows,macos,linux
 
 flutter pub get
-python3 tool/patch_vpn_glue.py
+if command -v python3 >/dev/null 2>&1; then
+  python3 tool/patch_vpn_glue.py
+else
+  python tool/patch_vpn_glue.py
+fi
 
 echo "Ready. Next (laptop):"
-echo "  ./tool/fetch_singbox.sh     # desktop binary"
+echo "  ./tool/fetch_singbox.sh     # desktop binary (Git Bash)"
+echo "  ./tool/fetch_singbox.ps1    # desktop binary (Windows PowerShell)"
 echo "  ./tool/build_libbox.sh      # Android AAR / iOS xcframework (needs Go + NDK / Xcode)"
 echo "  flutter run --dart-define-from-file=env/dev.env.example"
 echo "Checklist: docs/LAPTOP.md"

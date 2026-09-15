@@ -48,3 +48,23 @@ String formatBps(double bps) {
   if (i == 0) return '${value.round()} ${units[i]}';
   return '${value.toStringAsFixed(1)} ${units[i]}';
 }
+
+String formatBytes(int bytes) {
+  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+  var value = bytes.toDouble();
+  var i = 0;
+  while (value >= 1024 && i < units.length - 1) {
+    value /= 1024;
+    i++;
+  }
+  if (i == 0) return '${value.round()} ${units[i]}';
+  return '${value.toStringAsFixed(1)} ${units[i]}';
+}
+
+String formatElapsed(Duration elapsed) {
+  final h = elapsed.inHours;
+  final m = elapsed.inMinutes.remainder(60).toString().padLeft(2, '0');
+  final s = elapsed.inSeconds.remainder(60).toString().padLeft(2, '0');
+  if (h > 0) return '$h:$m:$s';
+  return '$m:$s';
+}

@@ -1,3 +1,27 @@
+import 'dart:convert';
+
+int? _asInt(Object? value) {
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  if (value is String) return int.tryParse(value);
+  return null;
+}
+
+num? _asNum(Object? value) {
+  if (value is num) return value;
+  if (value is String) return num.tryParse(value);
+  return null;
+}
+
+String _asJsonString(Object? value) {
+  if (value == null) return '';
+  if (value is String) return value;
+  if (value is Map || value is List) {
+    return jsonEncode(value);
+  }
+  return value.toString();
+}
+
 class Entitlement {
   const Entitlement({
     required this.username,
@@ -19,7 +43,22 @@ class Entitlement {
       status: json['status'] as String? ?? 'expired',
       canConnect: json['can_connect'] as bool? ?? false,
       expiresAt: json['expires_at'] as String?,
-      trafficRemainingBytes: json['traffic_remaining_bytes'] as int?,
+      trafficRemainingBytes: _asInt(json['traffic_remaining_bytes']),
+    );
+  }
+
+  /// Best-effort entitlement from the v2 client config payload.
+  factory Entitlement.fromClientConfig(Map<String, dynamic> json) {
+    final hasProtocols =
+        (json['protocols'] is List) && (json['protocols'] as List).isNotEmpty;
+    final hasSub = (json['subscription_url'] as String?)?.isNotEmpty == true;
+    final canConnect = hasProtocols || hasSub;
+    return Entitlement(
+      username: json['username'] as String? ?? '',
+      status: canConnect ? 'active' : 'expired',
+      canConnect: canConnect,
+      expiresAt: json['expires_at'] as String?,
+      trafficRemainingBytes: _asInt(json['traffic_remaining_bytes']),
     );
   }
 }
@@ -45,11 +84,11 @@ class PlanOffer {
 
   factory PlanOffer.fromJson(Map<String, dynamic> json) {
     return PlanOffer(
-      id: json['id'] as int,
+      id: _asInt(json['id']) ?? 0,
       name: json['name'] as String? ?? '',
-      durationDays: json['duration_days'] as int?,
-      trafficGb: json['traffic_gb'] as num?,
-      priceIrr: json['price_irr'] as num?,
+      durationDays: _asInt(json['duration_days']),
+      trafficGb: _asNum(json['traffic_gb']),
+      priceIrr: _asNum(json['price_irr']),
       appleProductId: json['apple_product_id'] as String?,
       googleProductId: json['google_product_id'] as String?,
     );
@@ -77,13 +116,13 @@ class NodeCandidate {
 
   factory NodeCandidate.fromJson(Map<String, dynamic> json) {
     return NodeCandidate(
-      id: json['id'] as int,
+      id: _asInt(json['id']) ?? 0,
       name: json['name'] as String? ?? '',
       host: json['host'] as String? ?? '',
-      port: json['port'] as int? ?? 443,
+      port: _asInt(json['port']) ?? 443,
       region: json['region'] as String?,
       sni: json['sni'] as String?,
-      loadPct: json['load_pct'] as num? ?? 0,
+      loadPct: _asNum(json['load_pct']) ?? 0,
     );
   }
 }
@@ -107,11 +146,13 @@ class TunnelConfig {
 
   factory TunnelConfig.fromJson(Map<String, dynamic> json) {
     return TunnelConfig(
-      nodeId: json['node_id'] as int,
+      nodeId: _asInt(json['node_id']) ?? 0,
       nodeName: json['node_name'] as String? ?? '',
       host: json['host'] as String? ?? '',
-      port: json['port'] as int? ?? 443,
-      singboxJson: json['singbox_json'] as String? ?? '',
+      port: _asInt(json['port']) ?? 443,
+      singboxJson: _asJsonString(
+        json['singbox_json'] ?? json['config'] ?? json['singbox'],
+      ),
       sni: json['sni'] as String?,
     );
   }
@@ -128,4 +169,32 @@ class TelegramLinkCode {
       botCommand: json['bot_command'] as String? ?? '/app',
     );
   }
+}
+
+List<Map<String, dynamic>> _asObjectList(dynamic data, List<String> keys) {
+  if (data is List) {
+    return data.whereType<Map>().map(Map<String, dynamic>.from).toList();
+  }
+  if (data is Map) {
+    for (final key in keys) {
+      final inner = data[key];
+      if (inner is List) {
+        return inner.whereType<Map>().map(Map<String, dynamic>.from).toList();
+      }
+    }
+  }
+  return const [];
+}
+
+List<PlanOffer> parsePlanOffers(dynamic data) {
+  return _asObjectList(data, const ['plans', 'items'])
+      .map(PlanOffer.fromJson)
+      .toList();
+}
+
+List<NodeCandidate> parseNodeCandidates(dynamic data) {
+  return _asObjectList(
+    data,
+    const ['candidates', 'nodes', 'items'],
+  ).map(NodeCandidate.fromJson).toList();
 }

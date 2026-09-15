@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:shahkar_connect/features/connect/engine/channel_vpn_engine.dart';
 import 'package:shahkar_connect/features/connect/engine/desktop_vpn_engine.dart';
+import 'package:shahkar_connect/features/connect/engine/singbox_prepare.dart';
 
 enum ConnectionStateKind { idle, connecting, connected, optimizing, error }
 
@@ -21,8 +22,9 @@ class TrafficStats {
 }
 
 class SingBoxConfig {
-  const SingBoxConfig({required this.json});
+  const SingBoxConfig({required this.json, this.options = const TunnelOptions()});
   final String json;
+  final TunnelOptions options;
 }
 
 class VpnUnavailableException implements Exception {
@@ -40,6 +42,10 @@ abstract class VpnEngine {
   Future<void> disconnect();
   Stream<ConnectionStateSnap> get stateStream;
   Stream<TrafficStats> get trafficStream;
+
+  /// Executable that carries the tunnel, when there is one to allow through
+  /// the firewall during a kill-switch lockdown.
+  String? get corePath => null;
 
   static VpnEngine forPlatform() {
     switch (defaultTargetPlatform) {
@@ -87,4 +93,7 @@ class StubVpnEngine implements VpnEngine {
 
   @override
   Stream<TrafficStats> get trafficStream => _traffic.stream;
+
+  @override
+  String? get corePath => null;
 }

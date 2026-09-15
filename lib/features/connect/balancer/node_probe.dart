@@ -23,9 +23,8 @@ Future<List<NodeCandidate>> rankHealthyNodes(
 ) async {
   if (candidates.isEmpty) throw NoHealthyNodeException();
   final results = await Future.wait(candidates.map(_probe));
-  final healthy =
-      results.where((r) => r.success).toList()
-        ..sort((a, b) => a.latencyMs.compareTo(b.latencyMs));
+  final healthy = results.where((r) => r.success).toList()
+    ..sort((a, b) => a.latencyMs.compareTo(b.latencyMs));
   if (healthy.isEmpty) throw NoHealthyNodeException();
   return healthy.map((r) => r.node).toList();
 }

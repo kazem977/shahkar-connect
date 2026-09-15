@@ -1,3 +1,4 @@
+import Foundation
 import NetworkExtension
 import os.log
 
@@ -8,7 +9,9 @@ class PacketTunnelProvider: NEPacketTunnelProvider {
     override func startTunnel(options: [String : NSObject]?, completionHandler: @escaping (Error?) -> Void) {
         let proto = self.protocolConfiguration as? NETunnelProviderProtocol
         guard let json = proto?.providerConfiguration?["json"] as? String else {
-            completionHandler(NSError(domain: "shahkar", code: 1))
+            completionHandler(NSError(domain: "shahkar", code: 1, userInfo: [
+                NSLocalizedDescriptionKey: "missing tunnel json",
+            ]))
             return
         }
         let dir = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.com.shahkar.connect")
@@ -29,12 +32,59 @@ class PacketTunnelProvider: NEPacketTunnelProvider {
                 completionHandler(error)
                 return
             }
-            os_log("tunnel settings applied; start libbox with %{public}@", log: self.log, type: .info, cfg.path)
-            completionHandler(nil)
+            do {
+                try LibboxRuntime.start(configPath: cfg.path, configJson: json)
+                os_log("libbox started %{public}@", log: self.log, type: .info, cfg.path)
+                completionHandler(nil)
+            } catch {
+                completionHandler(error)
+            }
         }
     }
 
     override func stopTunnel(with reason: NEProviderStopReason, completionHandler: @escaping () -> Void) {
+        LibboxRuntime.stop()
         completionHandler()
+    }
+}
+
+enum LibboxRuntime {
+    private static var instance: NSObject?
+
+    static func start(configPath: String, configJson: String) throws {
+        stop()
+        let classNames = [
+            "LibboxLibbox",
+            "Libbox",
+            "LibboxBoxService",
+        ]
+        var loaded: AnyClass?
+        for name in classNames {
+            if let cls = NSClassFromString(name) {
+                loaded = cls
+                break
+            }
+        }
+        guard let cls = loaded as? NSObject.Type else {
+            throw NSError(domain: "shahkar", code: 2, userInfo: [
+                NSLocalizedDescriptionKey: "libbox xcframework missing; run tool/build_libbox.sh on macOS",
+            ])
+        }
+        let selectors = ["newService:", "NewService:", "start:"]
+        for name in selectors {
+            let sel = NSSelectorFromString(name)
+            if cls.responds(to: sel) {
+                _ = cls.perform(sel, with: configJson)
+                instance = cls.init()
+                return
+            }
+        }
+        throw NSError(domain: "shahkar", code: 3, userInfo: [
+            NSLocalizedDescriptionKey: "libbox has no start method",
+        ])
+    }
+
+    static func stop() {
+        instance = nil
     }
 }

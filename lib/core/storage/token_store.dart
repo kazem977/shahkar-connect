@@ -1,20 +1,35 @@
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:shahkar_connect/core/device.dart';
 
 class TokenStore {
-  TokenStore({FlutterSecureStorage? storage})
-    : _storage = storage ?? const FlutterSecureStorage();
+  TokenStore({SharedPreferences? prefs}) : _prefs = prefs;
 
-  final FlutterSecureStorage _storage;
+  SharedPreferences? _prefs;
   static const _access = 'access_token';
   static const _refresh = 'refresh_token';
+  static const _device = 'device_id';
 
-  Future<void> save({required String access, required String refresh}) async {
-    await _storage.write(key: _access, value: access);
-    await _storage.write(key: _refresh, value: refresh);
+  Future<SharedPreferences> _ready() async {
+    return _prefs ??= await SharedPreferences.getInstance();
   }
 
-  Future<String?> get access async => _storage.read(key: _access);
-  Future<String?> get refresh async => _storage.read(key: _refresh);
+  Future<void> save({required String access, required String refresh}) async {
+    final prefs = await _ready();
+    await prefs.setString(_access, access);
+    await prefs.setString(_refresh, refresh);
+  }
+
+  Future<String?> get access async => (await _ready()).getString(_access);
+  Future<String?> get refresh async => (await _ready()).getString(_refresh);
+
+  Future<String> deviceId() async {
+    final prefs = await _ready();
+    final existing = prefs.getString(_device);
+    if (existing != null && existing.isNotEmpty) return existing;
+    final created = newDeviceId();
+    await prefs.setString(_device, created);
+    return created;
+  }
 
   Future<bool> hasSession() async {
     final token = await access;
@@ -22,7 +37,8 @@ class TokenStore {
   }
 
   Future<void> clear() async {
-    await _storage.delete(key: _access);
-    await _storage.delete(key: _refresh);
+    final prefs = await _ready();
+    await prefs.remove(_access);
+    await prefs.remove(_refresh);
   }
 }

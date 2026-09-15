@@ -4,6 +4,7 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Intent
+import android.content.pm.ServiceInfo
 import android.net.VpnService
 import android.os.Build
 import android.os.ParcelFileDescriptor
@@ -17,27 +18,77 @@ class ShahkarVpnService : VpnService() {
     private var tun: ParcelFileDescriptor? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (intent?.action == ACTION_STOP) {
+            stopTunnel()
+            stopSelf()
+            return START_NOT_STICKY
+        }
         val json = intent?.getStringExtra(EXTRA_CONFIG) ?: return START_NOT_STICKY
-        startForeground(NOTIF_ID, notification())
+        if (Build.VERSION.SDK_INT >= 34) {
+            startForeground(NOTIF_ID, notification(), ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
+        } else {
+            startForeground(NOTIF_ID, notification())
+        }
+        stopLibboxOnly()
         val builder = Builder()
             .setSession("Shahkar")
             .setMtu(1500)
             .addAddress("172.19.0.1", 30)
             .addDnsServer("1.1.1.1")
             .addRoute("0.0.0.0", 0)
-        tun = builder.establish()
-        val fd = tun?.fd ?: return START_NOT_STICKY
+        if (Build.VERSION.SDK_INT >= 29) {
+            builder.setMetered(false)
+        }
+        val established = try {
+            builder.establish()
+        } catch (e: Exception) {
+            stopSelf()
+            return START_NOT_STICKY
+        }
+        tun = established
+        val fd = established?.fd
+        if (fd == null) {
+            stopSelf()
+            return START_NOT_STICKY
+        }
         val cfg = File(cacheDir, "sing-box.json")
         cfg.writeText(json)
-        startLibbox(cfg.absolutePath, fd)
+        try {
+            LibboxBridge.start(this, json, fd)
+        } catch (e: Exception) {
+            stopTunnel()
+            stopSelf()
+            return START_NOT_STICKY
+        }
         return START_STICKY
     }
 
     override fun onDestroy() {
-        stopLibbox()
-        tun?.close()
-        tun = null
+        stopTunnel()
         super.onDestroy()
+    }
+
+    override fun onRevoke() {
+        stopTunnel()
+        stopSelf()
+        super.onRevoke()
+    }
+
+    private fun stopTunnel() {
+        stopLibboxOnly()
+        try {
+            tun?.close()
+        } catch (_: Exception) {
+        }
+        tun = null
+        stopForeground(STOP_FOREGROUND_REMOVE)
+    }
+
+    private fun stopLibboxOnly() {
+        try {
+            LibboxBridge.stop()
+        } catch (_: Exception) {
+        }
     }
 
     private fun notification(): Notification {
@@ -53,43 +104,15 @@ class ShahkarVpnService : VpnService() {
             @Suppress("DEPRECATION")
             Notification.Builder(this)
         }
-        return b.setContentTitle("Shahkar")
+        return b.setContentTitle("شاهکار")
             .setContentText("VPN")
             .setSmallIcon(android.R.drawable.ic_lock_lock)
             .build()
     }
 
-    private fun startLibbox(configPath: String, tunFd: Int) {
-        val cls = libboxClass() ?: throw IllegalStateException(
-            "libbox AAR missing; run tool/build_libbox.sh on a machine with Go/NDK",
-        )
-        val start = cls.methods.firstOrNull { it.name == "start" || it.name == "Start" }
-            ?: throw IllegalStateException("libbox has no start method")
-        start.invoke(null, configPath, tunFd)
-    }
-
-    private fun stopLibbox() {
-        val cls = libboxClass() ?: return
-        cls.methods.firstOrNull { it.name.equals("stop", ignoreCase = true) }?.invoke(null)
-    }
-
-    private fun libboxClass(): Class<*>? {
-        val names = arrayOf(
-            "io.nekohasekai.libbox.BoxService",
-            "libbox.BoxService",
-            "io.github.sagernet.libbox.BoxService",
-        )
-        for (n in names) {
-            try {
-                return Class.forName(n)
-            } catch (_: ClassNotFoundException) {
-            }
-        }
-        return null
-    }
-
     companion object {
         const val EXTRA_CONFIG = "config"
+        const val ACTION_STOP = "com.shahkar.connect.vpn.STOP"
         private const val CHANNEL = "shahkar.vpn"
         private const val NOTIF_ID = 42
     }

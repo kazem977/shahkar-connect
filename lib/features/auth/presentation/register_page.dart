@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:shahkar_connect/core/l10n/locale_controller.dart';
 import 'package:shahkar_connect/features/auth/data/auth_repository.dart';
-import 'package:shahkar_connect/features/connect/presentation/home_page.dart';
+import 'package:shahkar_connect/features/auth/presentation/auth_shell.dart';
+import 'package:shahkar_connect/features/connect/presentation/main_shell.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -11,10 +14,12 @@ class RegisterPage extends StatefulWidget {
 }
 
 class _RegisterPageState extends State<RegisterPage> {
+  final _form = GlobalKey<FormState>();
   final _user = TextEditingController();
   final _pass = TextEditingController();
   final _email = TextEditingController();
   bool _busy = false;
+  bool _hidePass = true;
   String? _error;
 
   @override
@@ -26,11 +31,14 @@ class _RegisterPageState extends State<RegisterPage> {
   }
 
   Future<void> _submit() async {
+    FocusScope.of(context).unfocus();
+    if (!(_form.currentState?.validate() ?? false)) return;
     setState(() {
       _busy = true;
       _error = null;
     });
     final auth = context.read<AuthRepository>();
+    final s = context.read<LocaleController>().s;
     try {
       await auth.register(
         username: _user.text.trim(),
@@ -39,11 +47,11 @@ class _RegisterPageState extends State<RegisterPage> {
       );
       if (!mounted) return;
       Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute<void>(builder: (_) => const HomePage()),
+        MaterialPageRoute<void>(builder: (_) => const MainShell()),
         (_) => false,
       );
     } catch (e) {
-      setState(() => _error = auth.describeError(e));
+      setState(() => _error = auth.describeError(e, s));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -51,42 +59,66 @@ class _RegisterPageState extends State<RegisterPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Directionality(
-      textDirection: TextDirection.rtl,
-      child: Scaffold(
-        appBar: AppBar(title: const Text('ثبت‌نام')),
-        body: Padding(
-          padding: const EdgeInsets.all(24),
+    final s = context.watch<LocaleController>().s;
+    return AuthShell(
+      compact: true,
+      onBack: () => Navigator.of(context).maybePop(),
+      child: AutofillGroup(
+        child: Form(
+          key: _form,
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              TextField(
+              AuthField(
                 controller: _user,
-                decoration: const InputDecoration(labelText: 'نام کاربری'),
-                autocorrect: false,
+                label: s.username,
+                textInputAction: TextInputAction.next,
+                autofillHints: const [AutofillHints.newUsername],
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z0-9_]')),
+                  LengthLimitingTextInputFormatter(32),
+                ],
+                validator: (value) {
+                  final v = value?.trim() ?? '';
+                  if (v.isEmpty) return s.requiredField;
+                  if (v.length < 3 || !usernamePattern.hasMatch(v)) {
+                    return s.usernameInvalid;
+                  }
+                  return null;
+                },
               ),
-              const SizedBox(height: 12),
-              TextField(
+              const SizedBox(height: 10),
+              AuthField(
                 controller: _email,
-                decoration: const InputDecoration(labelText: 'ایمیل (اختیاری)'),
+                label: s.email,
                 keyboardType: TextInputType.emailAddress,
+                textInputAction: TextInputAction.next,
+                autofillHints: const [AutofillHints.email],
               ),
-              const SizedBox(height: 12),
-              TextField(
+              const SizedBox(height: 10),
+              AuthField(
                 controller: _pass,
-                decoration: const InputDecoration(labelText: 'رمز عبور'),
-                obscureText: true,
+                label: s.password,
+                obscure: _hidePass,
+                onToggleObscure: () => setState(() => _hidePass = !_hidePass),
+                textInputAction: TextInputAction.done,
+                autofillHints: const [AutofillHints.newPassword],
+                onSubmitted: (_) => _submit(),
+                validator: (value) {
+                  if (value == null || value.isEmpty) return s.requiredField;
+                  if (value.length < 6) return s.passwordShort;
+                  return null;
+                },
               ),
               if (_error != null) ...[
-                const SizedBox(height: 12),
-                Text(
-                  _error!,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
-                ),
+                const SizedBox(height: 10),
+                AuthErrorBanner(message: _error!),
               ],
-              const SizedBox(height: 24),
-              FilledButton(
-                onPressed: _busy ? null : _submit,
-                child: const Text('ادامه'),
+              const SizedBox(height: 18),
+              AuthSubmitButton(
+                label: s.register,
+                busy: _busy,
+                onPressed: _submit,
               ),
             ],
           ),

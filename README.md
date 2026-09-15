@@ -20,6 +20,8 @@ Or pass the panel URL directly:
 flutter run --dart-define=SHAHKAR_API_BASE=https://your-panel.example
 ```
 
+On Windows use `.\tool\bootstrap.ps1` and `.\tool\fetch_singbox.ps1`.
+
 Env templates: `env/dev.env.example`, `env/staging.env.example`, `env/prod.env.example`.
 Full steps: `docs/SETUP.md`.
 

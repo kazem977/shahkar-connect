@@ -29,6 +29,8 @@ void main() {
     expect(snap.upBps, 1024);
     expect(snap.downBps, 2048);
     expect(formatBps(1024), '1.0 KB/s');
+    expect(formatBytes(2048), '2.0 KB');
+    expect(formatElapsed(const Duration(minutes: 1, seconds: 5)), '01:05');
   });
 
   test('parses tunnel config json without exposing extra fields', () {
